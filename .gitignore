@@ -33,3 +33,6 @@
 
 # OSC
 .DS_Store
+
+# VSCODE
+.vscode
