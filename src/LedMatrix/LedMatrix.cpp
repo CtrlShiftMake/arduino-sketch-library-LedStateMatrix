@@ -3,7 +3,6 @@
 
 LedMatrix::LedMatrix()
 {
-    Color white = {255, 255, 255};
     for (int i = 0; i < LED_NUM; i++)
     {
         led_state[i] = LED_INACTIVE;
