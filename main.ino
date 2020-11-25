@@ -19,5 +19,4 @@ void setup() {
 void loop() {
   ledMatrix.loop();
   FastLED.show();
-  delay(1000);
 }

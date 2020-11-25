@@ -59,7 +59,7 @@ class LedMatrix
         Color led_display[LED_NUM];
         unsigned long time_current;
         unsigned long time_start;
-        unsigned long time_interval;
+        unsigned long time_interval = 360;
         ColorMap calculateStateColors(Color color);
         void applyColorsToDisplayMatrix();
         bool tickClock();
