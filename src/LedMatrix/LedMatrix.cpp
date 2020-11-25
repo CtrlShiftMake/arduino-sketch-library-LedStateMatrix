@@ -1,125 +1,123 @@
 #include "Arduino.h"
 #include "LedMatrix.h"
 
-LedMatrix::LedMatrix()
+LedMatrix::LedMatrix(){}
+
+void LedMatrix::init(){
+
+    for (int x = 0; x < LED_ARRAY_X; x++)
+    {
+        for (int y = 0; y < LED_ARRAY_Y; y++)
+        {
+            setState(x, y, LED_INACTIVE);
+        }
+    }
+
+    setInputsColor(255, 255, 255);
+    setFunctionColor(FUNC_0, 255, 0, 0);
+    setFunctionColor(FUNC_1, 0, 255, 0);
+    setFunctionColor(FUNC_2, 0, 255, 0);
+    setFunctionColor(FUNC_3, 255, 0, 0);
+}
+
+void LedMatrix::setInputsColor(int r, int g, int b)
+{
+    generateStateMap(&colorInput, r, g, b);
+}
+
+void LedMatrix::setFunctionColor(int index, int r, int g, int b)
+{
+    switch (index)
+    {
+    case FUNC_0:
+         generateStateMap(&colorFunc0, r, g, b);
+        break;
+    
+    case FUNC_1:
+         generateStateMap(&colorFunc1, r, g, b);
+        break;
+    
+    case FUNC_2:
+         generateStateMap(&colorFunc2, r, g, b);
+        break;
+    
+    case FUNC_3:
+         generateStateMap(&colorFunc3, r, g, b);
+        break;
+    
+    default:
+        break;
+    }
+}
+
+void LedMatrix::generateStateMap(CRGBStateMap *stateMap, int r, int g, int b)
+{
+    stateMap->inactive = CRGB(r * VAL_INACTIVE, g * VAL_INACTIVE, b * VAL_INACTIVE);
+    stateMap->active = CRGB(r * VAL_ACTIVE, g * VAL_ACTIVE, b * VAL_ACTIVE);
+    stateMap->dimmed = CRGB(r * VAL_DIMMED, g * VAL_DIMMED, b * VAL_DIMMED);
+    stateMap->pressed = CRGB(r * VAL_PRESSED, g * VAL_PRESSED, b * VAL_PRESSED);
+}
+
+void LedMatrix::setState(int x, int y, char state)
+{
+    int index = x + (x * (LED_ARRAY_Y-1)) + y;
+    if (index >= 0 && index < LED_NUM)
+    {
+        led_state[index] = state;
+    }
+}
+
+void LedMatrix::applyToCRGBArray(CRGB matrix[LED_NUM])
 {
     for (int i = 0; i < LED_NUM; i++)
     {
-        led_state[i] = LED_INACTIVE;
-    }
-
-    setTrackColor(255, 255, 255);
-    setMenuColor(0, 255, 255, 255);
-    setMenuColor(1, 255, 255, 255);
-    setMenuColor(2, 255, 255, 255);
-    setMenuColor(3, 255, 255, 255);
-
-    applyColorsToDisplayMatrix();
-
-    time_current = millis();
-    time_start = time_current;
-}
-
-void LedMatrix::loop()
-{
-    if ( !tickClock() )
-        return;
-    
-    applyColorsToDisplayMatrix();
-}
-
-void LedMatrix::setStateByIndex(int index, int state)
-{
-    led_state[index] = state;
-}
-
-void LedMatrix::setTrackStates(int state)
-{
-    for (int i = 0; i < LED_NUM - 4; i++)
-    {
-        setStateByIndex(i, state);
-    }
-}
-
-void LedMatrix::setMenuStates(int m0_state, int m1_state, int m2_state, int m3_state)
-{
-    setStateByIndex(31, m0_state);
-    setStateByIndex(32, m1_state);
-    setStateByIndex(33, m2_state);
-    setStateByIndex(34, m3_state);
-}
-
-void LedMatrix::setMenuColor(int index, int r, int g, int b)
-{
-    Color color = {r, g, b};
-    led_colormap[LED_NUM - (4 - index)] = calculateStateColors(color);
-}
-
-void LedMatrix::setTrackColor(int r, int g, int b)
-{
-    Color color = {r, g, b};
-    ColorMap colorMap = calculateStateColors(color);
-
-    for (int i = 0; i < LED_NUM - 4; i++)
-    {
-        led_colormap[i] = colorMap;
-    }
-}
-
-ColorMap LedMatrix::calculateStateColors(Color color)
-{
-    ColorMap colorMap;
-    colorMap.active = color * value_active;
-    colorMap.inactive = color * value_inactive;
-    colorMap.dimmed = color * value_dimmed;
-    colorMap.pressed = color * value_pressed;
-
-    return colorMap;
-}
-
-void LedMatrix::applyColorsToDisplayMatrix()
-{
-    for (int i = 0; i < LED_NUM; i++ )
-    {
-        switch (led_state[i])
+        switch (i)
         {
-        case LED_ACTIVE:
-            led_display[i] = led_colormap[i].active * global_brightness;
+        case FUNC_0:
+            matrix[i] = getColorForState(i, colorFunc0);
             break;
 
-        case LED_INACTIVE:
-            led_display[i] = led_colormap[i].inactive * global_brightness;
+        case FUNC_1:
+            matrix[i] = getColorForState(i, colorFunc1);
             break;
         
-        case LED_DIMMED:
-            led_display[i] = led_colormap[i].dimmed * global_brightness;
-            break;
-        
-        case LED_PRESSED:
-            led_display[i] = led_colormap[i].pressed * global_brightness;
+        case FUNC_2:
+            matrix[i] = getColorForState(i, colorFunc2);
             break;
 
+        case FUNC_3:
+            matrix[i] = getColorForState(i, colorFunc3);
+            break;
+        
         default:
-            led_display[i] = led_colormap[i].inactive * global_brightness;
+            matrix[i] = getColorForState(i, colorInput);
             break;
         }
     }
 }
 
-void LedMatrix::getColorMatrix(CRGB colorMatrix[LED_NUM])
-{
-    for (int i = 0; i < LED_NUM; i++)
-    {
-        colorMatrix[i] = CRGB(led_display[i].r, led_display[i].g, led_display[i].b);
-    }
-}
+CRGB LedMatrix::getColorForState(int i, CRGBStateMap stateMap){
 
-bool LedMatrix::tickClock() {
-    time_current = millis();
-    if (time_current - time_start >= time_interval)
-    {
-        time_start = time_current;
-        return true;
-    }
-    return false;
+    switch (led_state[i])
+        {
+        case LED_INACTIVE:
+            return stateMap.inactive;
+            break;
+
+        case LED_ACTIVE:
+            return stateMap.active;
+            break;
+
+        case LED_DIMMED:
+            return stateMap.dimmed;
+            break;
+
+        case LED_PRESSED:
+            return stateMap.pressed;
+            break;
+
+        default:
+            return stateMap.inactive;
+            break;
+        }
 }

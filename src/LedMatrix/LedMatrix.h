@@ -4,65 +4,53 @@
 #include "Arduino.h"
 #include "FastLED.h"
 
-#define LED_INACTIVE 0
-#define LED_ACTIVE 1
-#define LED_DIMMED 2
-#define LED_PRESSED 3
+#define LED_PIN 12
 
-const int LED_NUM = 35;
+#define LED_INACTIVE '0'
+#define LED_ACTIVE '1'
+#define LED_DIMMED '2'
+#define LED_PRESSED '3'
 
-struct Color {
-    int r;
-    int g;
-    int b;
+#define VAL_INACTIVE 0.0f
+#define VAL_ACTIVE 0.5f
+#define VAL_DIMMED 0.1f
+#define VAL_PRESSED 1.0f
 
-    Color& operator=(Color other){
-        this->r = other.r;
-        this->g = other.g;
-        this->b = other.b;
-    }
+#define FUNC_0 31
+#define FUNC_1 32
+#define FUNC_2 33
+#define FUNC_3 34
 
-    Color& operator*(float mult){
-        this->r = int((float(this->r) * mult));
-        this->g = int((float(this->g) * mult));
-        this->b = int((float(this->b) * mult));
-    }
-};
+#define LED_NUM 35
+#define LED_ARRAY_X 5
+#define LED_ARRAY_Y 7
 
-struct ColorMap {
-    Color inactive;
-    Color active;
-    Color dimmed;
-    Color pressed;
+struct CRGBStateMap {
+    CRGB inactive;
+    CRGB active;
+    CRGB dimmed;
+    CRGB pressed;
 };
 
 class LedMatrix
 {
-    const float value_inactive = 0.0;
-    const float value_active = 0.5;
-    const float value_dimmed = 0.1;
-    const float value_pressed = 1.0;
-
     public : LedMatrix();
-        void loop();
-        void setStateByIndex(int index, int state);
-        void setTrackStates(int state);
-        void setMenuStates(int m0_state, int m1_state, int m2_state, int m3_state);
-        void setTrackColor(int r, int g, int b);
-        void setMenuColor(int index, int r, int g, int b);
-        void getColorMatrix(CRGB colorMatrix[LED_NUM]);
+        void init();
+        bool tick();
+        void setInputsColor(int r, int g, int b);
+        void setFunctionColor(int index, int r, int g, int b);
+        void setState(int x, int y, char state);
+        void applyToCRGBArray(CRGB matrix[LED_NUM]);
 
     private:
-        float global_brightness = 1.0;
-        int led_state[LED_NUM];
-        ColorMap led_colormap[LED_NUM];
-        Color led_display[LED_NUM];
-        unsigned long time_current;
-        unsigned long time_start;
-        unsigned long time_interval = 360;
-        ColorMap calculateStateColors(Color color);
-        void applyColorsToDisplayMatrix();
-        bool tickClock();
+        char led_state[LED_NUM];
+        CRGBStateMap colorInput;
+        CRGBStateMap colorFunc0;
+        CRGBStateMap colorFunc1;
+        CRGBStateMap colorFunc2;
+        CRGBStateMap colorFunc3;
+        void generateStateMap(CRGBStateMap *stateMap, int r, int g, int b);
+        CRGB getColorForState(int i, CRGBStateMap stateMap);
 };
 
 #endif
