@@ -1,18 +1,30 @@
-#include "src/LedMatrix/LedMatrix.h"
-
 #include <Arduino.h>
+#include <ArduinoJson.h>
 #include <FastLED.h>
 #include <RTClib.h>
 #include <SD.h>
 #include <Wire.h>
+#include <YA_FSM.h>
 
+#include "src/LedMatrix/LedMatrix.h"
+
+// Finite State Machine
+// YA_FSM fsm(2, 1);
+YA_FSM fsm;
+enum Input { xLoad, xTrack, xEdit };
+enum State { LOAD, TRACK, EDIT };
+const char *stateName[] = {"Loading", "Tracking", "Editing"};
+Input input;
+uint8_t currentState;
+
+// Adafruit Data Logger Shield
 RTC_PCF8523 rtc;
 char daysOfTheWeek[7][12] = {"Sunday",   "Monday", "Tuesday", "Wednesday",
                              "Thursday", "Friday", "Saturday"};
-
 const int chipSelect = 10;
-File configFile;
+File root;
 
+// Addressable LED Strip
 CRGB leds[LED_NUM];
 LedMatrix ledMatrix;
 
@@ -24,11 +36,18 @@ void error(char *str) {
 }
 
 void setup() {
-  Serial.begin(9600);
+  Serial.begin(115200);
 #ifndef ESP8266
   while (!Serial)
     ; // wait for serial port to connect. Needed for native USB
 #endif
+
+  // Initializing State Machine
+  Serial.print("Initializing States...");
+  setupStateMachine();
+  input = Input::xLoad;
+  currentState = fsm.GetState();
+  Serial.print("done!\n");
 
   // Initializing RTC for time keeping
   Serial.print("Initializing RTC...");
@@ -38,7 +57,7 @@ void setup() {
     rtc.adjust(DateTime(F(__DATE__), F(__TIME__)));
   }
   rtc.start();
-  Serial.print("done!\n");
+  Serial.println("done!");
 
   // Initialize SD Card
   Serial.print("Initializing SD Card...");
@@ -46,15 +65,14 @@ void setup() {
   if (!SD.begin(chipSelect)) {
     error("card failed, or not present");
   }
-  Serial.print("done!\n");
+  Serial.println("done!");
 
   // Initializing Config File on SD Card
-  Serial.print("Initializing config file...");
-  configFile = SD.open("config.txt", FILE_WRITE);
-  if (!configFile) {
-    error("couldn't create file");
-  }
-  Serial.print("done!\n");
+  Serial.print("Initializing Root Dir...");
+  root = SD.open("/");
+  if (!root.isDirectory())
+    error("couldn't open root");
+  Serial.println("done!");
 
   // Initializing LED Matrix
   Serial.print("Initializing LED Matrix...");
@@ -62,10 +80,20 @@ void setup() {
   ledMatrix.applyToCRGBArray(leds);
   FastLED.addLeds<WS2812, LED_PIN, GRB>(leds, LED_NUM);
   FastLED.show();
-  Serial.print("done!\n");
+  Serial.println("done!");
+
+  // Start the Load state
+  onEnterLoad();
 }
 
-void loop() {}
+void loop() {
+  // Update State Machine	(true is state changed)
+  if (fsm.Update()) {
+    currentState = fsm.GetState();
+    Serial.print(F("Active state: "));
+    Serial.println(stateName[currentState]);
+  }
+}
 
 void DebugRTC() {
   DateTime now = rtc.now();
@@ -132,3 +160,35 @@ void DebugLEDStates() {
 
   ledMatrix.setInputsColor(r, g, b);
 }
+
+/////////// FINITE STATE MACHINE //////////////////
+
+void setupStateMachine() {
+
+  fsm.AddState(stateName[LOAD], 0, onEnterLoad, onStateLoad, onExitLoad);
+  fsm.AddState(stateName[TRACK], 0, onEnterTrack, onStateTrack, onExitTrack);
+  fsm.AddState(stateName[EDIT], 0, onEnterEdit, onStateEdit, onExitEdit);
+
+  fsm.AddTransition(LOAD, TRACK, []() { return input == Input::xTrack; });
+  fsm.AddTransition(TRACK, LOAD, []() { return input == Input::xLoad; });
+  fsm.AddTransition(TRACK, EDIT, []() { return input == Input::xEdit; });
+  fsm.AddTransition(EDIT, TRACK, []() { return input == Input::xTrack; });
+}
+
+// --  LOAD  --
+
+void onEnterLoad() {}
+void onStateLoad() { input = Input::xTrack; }
+void onExitLoad() {}
+
+// --  TRACK --
+
+void onEnterTrack() {}
+void onStateTrack() {}
+void onExitTrack() {}
+
+// --  EDIT  --
+
+void onEnterEdit() {}
+void onStateEdit() {}
+void onExitEdit() {}
