@@ -1,20 +1,44 @@
+#include <RTClib.h>
+
 #include "src/LedMatrix/LedMatrix.h"
 #include <Arduino.h>
 #include <FastLED.h>
 
+RTC_PCF8523 rtc;
+
 CRGB leds[LED_NUM];
+char daysOfTheWeek[7][12] = {"Sunday",   "Monday", "Tuesday", "Wednesday",
+                             "Thursday", "Friday", "Saturday"};
 
 LedMatrix ledMatrix;
 
 void setup() {
-  Serial.begin(9600);
+  Serial.begin(57600);
+
+#ifndef ESP8266
+  while (!Serial)
+    ; // wait for serial port to connect. Needed for native USB
+#endif
+
+  if (!rtc.begin()) {
+    Serial.println("Couldn't find RTC");
+    Serial.flush();
+    abort();
+  }
+
+  if (!rtc.initialized() || rtc.lostPower()) {
+    rtc.adjust(DateTime(F(__DATE__), F(__TIME__)));
+  }
+
+  rtc.start();
+
   ledMatrix.init();
   ledMatrix.applyToCRGBArray(leds);
   FastLED.addLeds<WS2812, LED_PIN, GRB>(leds, LED_NUM);
   FastLED.show();
 }
 
-void loop() {}
+void loop() { DebugLEDStates(); }
 
 void DebugLEDStates() {
   delay(600);
