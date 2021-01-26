@@ -23,6 +23,7 @@ char daysOfTheWeek[7][12] = {"Sunday",   "Monday", "Tuesday", "Wednesday",
                              "Thursday", "Friday", "Saturday"};
 const int chipSelect = 10;
 File root;
+DateTime now;
 
 // Addressable LED Strip
 CRGB leds[LED_NUM];
@@ -95,8 +96,25 @@ void loop() {
   }
 }
 
-void DebugRTC() {
-  DateTime now = rtc.now();
+/////////// FINITE STATE MACHINE //////////////////
+
+void setupStateMachine() {
+
+  fsm.AddState(stateName[LOAD], 0, onEnterLoad, onStateLoad, onExitLoad);
+  fsm.AddState(stateName[TRACK], 0, onEnterTrack, onStateTrack, onExitTrack);
+  fsm.AddState(stateName[EDIT], 0, onEnterEdit, onStateEdit, onExitEdit);
+
+  fsm.AddTransition(LOAD, TRACK, []() { return input == Input::xTrack; });
+  fsm.AddTransition(TRACK, LOAD, []() { return input == Input::xLoad; });
+  fsm.AddTransition(TRACK, EDIT, []() { return input == Input::xEdit; });
+  fsm.AddTransition(EDIT, TRACK, []() { return input == Input::xTrack; });
+}
+
+// --  LOAD  --
+
+void onEnterLoad() {
+  /*
+  now = rtc.now();
   Serial.print(now.year(), DEC);
   Serial.print('/');
   Serial.print(now.month(), DEC);
@@ -111,9 +129,16 @@ void DebugRTC() {
   Serial.print(':');
   Serial.print(now.second(), DEC);
   Serial.println();
+  */
 }
+void onStateLoad() { input = Input::xTrack; }
+void onExitLoad() {}
 
-void DebugLEDStates() {
+// --  TRACK --
+
+void onEnterTrack() {}
+void onStateTrack() {
+  /*
   delay(600);
   for (int x = 0; x < LED_ARRAY_X; x++) {
     for (int y = 0; y < LED_ARRAY_Y; y++) {
@@ -159,32 +184,8 @@ void DebugLEDStates() {
   int b = random(0, 255);
 
   ledMatrix.setInputsColor(r, g, b);
+  */
 }
-
-/////////// FINITE STATE MACHINE //////////////////
-
-void setupStateMachine() {
-
-  fsm.AddState(stateName[LOAD], 0, onEnterLoad, onStateLoad, onExitLoad);
-  fsm.AddState(stateName[TRACK], 0, onEnterTrack, onStateTrack, onExitTrack);
-  fsm.AddState(stateName[EDIT], 0, onEnterEdit, onStateEdit, onExitEdit);
-
-  fsm.AddTransition(LOAD, TRACK, []() { return input == Input::xTrack; });
-  fsm.AddTransition(TRACK, LOAD, []() { return input == Input::xLoad; });
-  fsm.AddTransition(TRACK, EDIT, []() { return input == Input::xEdit; });
-  fsm.AddTransition(EDIT, TRACK, []() { return input == Input::xTrack; });
-}
-
-// --  LOAD  --
-
-void onEnterLoad() {}
-void onStateLoad() { input = Input::xTrack; }
-void onExitLoad() {}
-
-// --  TRACK --
-
-void onEnterTrack() {}
-void onStateTrack() {}
 void onExitTrack() {}
 
 // --  EDIT  --
