@@ -4,84 +4,65 @@
 #include <FastLED.h>
 #include <RTClib.h>
 #include <SD.h>
-#include <SPI.h>
+#include <Wire.h>
 
 RTC_PCF8523 rtc;
-Sd2Card card;
-SdVolume volume;
-SdFile root;
-File trackfile;
-const int chipSelect = 10;
-
-CRGB leds[LED_NUM];
 char daysOfTheWeek[7][12] = {"Sunday",   "Monday", "Tuesday", "Wednesday",
                              "Thursday", "Friday", "Saturday"};
 
+const int chipSelect = 10;
+File configFile;
+
+CRGB leds[LED_NUM];
 LedMatrix ledMatrix;
 
-void setup() {
-  Serial.begin(57600);
+void error(char *str) {
+  Serial.print("ERROR: ");
+  Serial.print(str);
+  while (1)
+    ;
+}
 
+void setup() {
+  Serial.begin(9600);
 #ifndef ESP8266
   while (!Serial)
     ; // wait for serial port to connect. Needed for native USB
 #endif
 
-  // Initializing RTC for time
-  Serial.println("Initializing RTC...");
-  if (!rtc.begin()) {
-    Serial.println("Couldn't find RTC");
-    Serial.flush();
-    abort();
-  }
-
+  // Initializing RTC for time keeping
+  Serial.print("Initializing RTC...");
+  if (!rtc.begin())
+    error("Couldn't find RTC");
   if (!rtc.initialized() || rtc.lostPower()) {
     rtc.adjust(DateTime(F(__DATE__), F(__TIME__)));
   }
-
   rtc.start();
+  Serial.print("done!\n");
 
-  // Initializing SD card
-  /* Serial.println("Initializing SD card...");
-  if (!card.init(SPI_HALF_SPEED, chipSelect)) {
-    Serial.println("Couldn't initialize SD card (missing or mis-configured");
-    Serial.flush();
-    abort();
-  }
-
-  if (!volume.init(card)) {
-    Serial.println("Couldn't find FAT16/FAT32 partition");
-    Serial.flush();
-    abort();
-  }
-
-  root.openRoot(volume);
-  */
-
-  // Initialize Debug Track File
+  // Initialize SD Card
+  Serial.print("Initializing SD Card...");
   pinMode(chipSelect, OUTPUT);
   if (!SD.begin(chipSelect)) {
-    Serial.println("Card failed, or not present");
-    Serial.flush();
-    abort();
+    error("card failed, or not present");
   }
-  Serial.println("card initialized.");
-  char filename[] = "test/test.json";
-  if (!SD.exists(filename)) {
-    trackfile = SD.open(filename, FILE_WRITE);
+  Serial.print("done!\n");
+
+  // Initializing Config File on SD Card
+  Serial.print("Initializing config file...");
+  configFile = SD.open("config.txt", FILE_WRITE);
+  if (!configFile) {
+    error("couldn't create file");
   }
-  if (!trackfile) {
-    Serial.println("Couldn't created file");
-    Serial.flush();
-    abort();
-  }
+  Serial.print("done!\n");
 
   // Initializing LED Matrix
-  Serial.println("Initializing LED Matrix");
+  Serial.print("Initializing LED Matrix...");
   ledMatrix.init();
   ledMatrix.applyToCRGBArray(leds);
   FastLED.addLeds<WS2812, LED_PIN, GRB>(leds, LED_NUM);
   FastLED.show();
+  Serial.print("done!\n");
 }
 
 void loop() {}
