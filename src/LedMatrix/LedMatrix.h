@@ -4,7 +4,7 @@
 #include "Arduino.h"
 #include "FastLED.h"
 
-#define LED_PIN 12
+#define LED_PIN 9
 
 #define LED_INACTIVE '0'
 #define LED_ACTIVE '1'

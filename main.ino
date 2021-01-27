@@ -32,15 +32,12 @@ void error(char *str) {
 }
 
 void setup() {
-  Serial.begin(115200);
-  Serial.println(FreeRam());
+  Serial.begin(9600);
 
   // Init state transitions
   Serial.print("Initializing States...");
   setupStateMachine();
   Serial.print("done!\n");
-
-  Serial.println(FreeRam());
 
   // Initializing RTC for time keeping
   Serial.print("Initializing RTC...");
@@ -51,7 +48,6 @@ void setup() {
   }
   rtc.start();
   Serial.println("done!");
-  Serial.println(FreeRam());
 
   // Initialize SD card for storage
   Serial.print("Initializing SD Card...");
@@ -60,7 +56,6 @@ void setup() {
     error("card failed, or not present");
   }
   Serial.println("done!");
-  Serial.println(FreeRam());
 
   // Initialize the root directory
   Serial.print("Initializing Config File...");
@@ -68,7 +63,6 @@ void setup() {
   if (!file)
     error("problem loading file");
   Serial.println("done!");
-  Serial.println(FreeRam());
 
   // Initializing LED matrix for display
   Serial.print("Initializing LED Matrix...");
@@ -77,7 +71,6 @@ void setup() {
   FastLED.addLeds<WS2812, LED_PIN, GRB>(leds, LED_NUM);
   FastLED.show();
   Serial.println("done!");
-  Serial.println(FreeRam());
 }
 
 void loop() { fsm.run_machine(); }
@@ -92,8 +85,6 @@ void setupStateMachine() {
 // --  LOAD  --
 
 void onEnterLoad() {
-  Serial.println("Enter LOADING");
-
   now = rtc.now();
   Serial.print(now.year(), DEC);
   Serial.print('/');
@@ -108,15 +99,12 @@ void onEnterLoad() {
   Serial.print(now.second(), DEC);
   Serial.println();
 }
-void onStateLoad() {
-  Serial.println("Loading...");
-  fsm.trigger(TRACK_HABIT);
-}
-void onExitLoad() { Serial.println("Exit LOADING"); }
+void onStateLoad() { fsm.trigger(TRACK_HABIT); }
+void onExitLoad() {}
 
 // --  TRACK --
 
-void onEnterTrack() { Serial.println("Enter TRACKING"); }
+void onEnterTrack() {}
 void onStateTrack() {
   delay(600);
   for (int x = 0; x < LED_ARRAY_X; x++) {
@@ -124,8 +112,8 @@ void onStateTrack() {
       ledMatrix.setState(x, y, LED_DIMMED);
     }
   }
+  Serial.println("LEDS Dimmed");
   ledMatrix.applyToCRGBArray(leds);
-  Serial.println("DIMMED");
   FastLED.show();
 
   delay(600);
@@ -134,8 +122,8 @@ void onStateTrack() {
       ledMatrix.setState(x, y, LED_ACTIVE);
     }
   }
+  Serial.println("LEDS Active");
   ledMatrix.applyToCRGBArray(leds);
-  Serial.println("ACTIVE");
   FastLED.show();
 
   delay(600);
@@ -144,7 +132,7 @@ void onStateTrack() {
       ledMatrix.setState(x, y, LED_PRESSED);
     }
   }
-  Serial.println("PRESSED");
+  Serial.println("LEDS Pressed");
   ledMatrix.applyToCRGBArray(leds);
   FastLED.show();
 
@@ -154,8 +142,8 @@ void onStateTrack() {
       ledMatrix.setState(x, y, LED_INACTIVE);
     }
   }
+  Serial.println("LEDS INACTIVE");
   ledMatrix.applyToCRGBArray(leds);
-  Serial.println("INACTIVE");
   FastLED.show();
 
   int r = random(0, 255);
