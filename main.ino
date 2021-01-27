@@ -1,31 +1,31 @@
 #include <Arduino.h>
-#include <ArduinoJson.h>
+//#include <ArduinoJson.h>
 #include <FastLED.h>
+#include <Fsm.h>
 #include <RTClib.h>
 #include <SD.h>
 #include <Wire.h>
-#include <YA_FSM.h>
 
 #include "src/LedMatrix/LedMatrix.h"
 
-// Finite State Machine
-// YA_FSM fsm(2, 1);
-YA_FSM fsm;
-enum Input { xLoad, xTrack, xEdit };
-enum State { LOAD, TRACK, EDIT };
-const char *stateName[] = {"Loading", "Tracking", "Editing"};
-Input input;
-uint8_t currentState;
+// Events to trigger state change
+#define LOAD_HABIT 900
+#define TRACK_HABIT 901
 
-// Adafruit Data Logger Shield
+// Finite state machine
+State state_load(&onEnterLoad, &onStateLoad, &onExitLoad);
+State state_track(&onEnterTrack, &onStateTrack, &onExitTrack);
+Fsm fsm(&state_load);
+
+// Data logger shield setup
 RTC_PCF8523 rtc;
 char daysOfTheWeek[7][12] = {"Sunday",   "Monday", "Tuesday", "Wednesday",
                              "Thursday", "Friday", "Saturday"};
 const int chipSelect = 10;
-File root;
+File config;
 DateTime now;
 
-// Addressable LED Strip
+// LED strip
 CRGB leds[LED_NUM];
 LedMatrix ledMatrix;
 
@@ -42,13 +42,14 @@ void setup() {
   while (!Serial)
     ; // wait for serial port to connect. Needed for native USB
 #endif
+  Serial.println(FreeRam());
 
-  // Initializing State Machine
+  // Init state transitions
   Serial.print("Initializing States...");
   setupStateMachine();
-  input = Input::xLoad;
-  currentState = fsm.GetState();
   Serial.print("done!\n");
+
+  Serial.println(FreeRam());
 
   // Initializing RTC for time keeping
   Serial.print("Initializing RTC...");
@@ -59,61 +60,51 @@ void setup() {
   }
   rtc.start();
   Serial.println("done!");
+  Serial.println(FreeRam());
 
-  // Initialize SD Card
+  // Initialize SD card for storage
   Serial.print("Initializing SD Card...");
   pinMode(chipSelect, OUTPUT);
   if (!SD.begin(chipSelect)) {
     error("card failed, or not present");
   }
   Serial.println("done!");
+  Serial.println(FreeRam());
 
-  // Initializing Config File on SD Card
+  // Initialize the root directory
   Serial.print("Initializing Root Dir...");
-  root = SD.open("/");
-  if (!root.isDirectory())
-    error("couldn't open root");
+  config = SD.open("config.txt");
+  if (!config)
+    error("problem loading config file");
   Serial.println("done!");
+  Serial.println(FreeRam());
 
-  // Initializing LED Matrix
+  // Initializing LED matrix for display
   Serial.print("Initializing LED Matrix...");
   ledMatrix.init();
   ledMatrix.applyToCRGBArray(leds);
+  /*
   FastLED.addLeds<WS2812, LED_PIN, GRB>(leds, LED_NUM);
   FastLED.show();
+  */
   Serial.println("done!");
-
-  // Start the Load state
-  onEnterLoad();
+  Serial.println(FreeRam());
 }
 
-void loop() {
-  // Update State Machine	(true is state changed)
-  if (fsm.Update()) {
-    currentState = fsm.GetState();
-    Serial.print(F("Active state: "));
-    Serial.println(stateName[currentState]);
-  }
-}
+void loop() { fsm.run_machine(); }
 
 /////////// FINITE STATE MACHINE //////////////////
 
 void setupStateMachine() {
-
-  fsm.AddState(stateName[LOAD], 0, onEnterLoad, onStateLoad, onExitLoad);
-  fsm.AddState(stateName[TRACK], 0, onEnterTrack, onStateTrack, onExitTrack);
-  fsm.AddState(stateName[EDIT], 0, onEnterEdit, onStateEdit, onExitEdit);
-
-  fsm.AddTransition(LOAD, TRACK, []() { return input == Input::xTrack; });
-  fsm.AddTransition(TRACK, LOAD, []() { return input == Input::xLoad; });
-  fsm.AddTransition(TRACK, EDIT, []() { return input == Input::xEdit; });
-  fsm.AddTransition(EDIT, TRACK, []() { return input == Input::xTrack; });
+  fsm.add_transition(&state_load, &state_track, TRACK_HABIT, NULL);
+  fsm.add_transition(&state_track, &state_load, LOAD_HABIT, NULL);
 }
 
 // --  LOAD  --
 
 void onEnterLoad() {
-  /*
+  Serial.println("Enter LOADING");
+
   now = rtc.now();
   Serial.print(now.year(), DEC);
   Serial.print('/');
@@ -129,16 +120,17 @@ void onEnterLoad() {
   Serial.print(':');
   Serial.print(now.second(), DEC);
   Serial.println();
-  */
 }
-void onStateLoad() { input = Input::xTrack; }
-void onExitLoad() {}
+void onStateLoad() {
+  Serial.println("Loading...");
+  fsm.trigger(TRACK_HABIT);
+}
+void onExitLoad() { Serial.println("Exit LOADING"); }
 
 // --  TRACK --
 
-void onEnterTrack() {}
+void onEnterTrack() { Serial.println("Enter TRACKING"); }
 void onStateTrack() {
-  /*
   delay(600);
   for (int x = 0; x < LED_ARRAY_X; x++) {
     for (int y = 0; y < LED_ARRAY_Y; y++) {
@@ -184,12 +176,5 @@ void onStateTrack() {
   int b = random(0, 255);
 
   ledMatrix.setInputsColor(r, g, b);
-  */
 }
 void onExitTrack() {}
-
-// --  EDIT  --
-
-void onEnterEdit() {}
-void onStateEdit() {}
-void onExitEdit() {}
