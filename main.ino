@@ -1,10 +1,8 @@
 #include <Arduino.h>
-//#include <ArduinoJson.h>
 #include <FastLED.h>
 #include <Fsm.h>
 #include <RTClib.h>
 #include <SD.h>
-#include <Wire.h>
 
 #include "src/LedMatrix/LedMatrix.h"
 
@@ -19,11 +17,8 @@ Fsm fsm(&state_load);
 
 // Data logger shield setup
 RTC_PCF8523 rtc;
-char daysOfTheWeek[7][12] = {"Sunday",   "Monday", "Tuesday", "Wednesday",
-                             "Thursday", "Friday", "Saturday"};
-const int chipSelect = 10;
-File config;
 DateTime now;
+File file;
 
 // LED strip
 CRGB leds[LED_NUM];
@@ -38,10 +33,6 @@ void error(char *str) {
 
 void setup() {
   Serial.begin(115200);
-#ifndef ESP8266
-  while (!Serial)
-    ; // wait for serial port to connect. Needed for native USB
-#endif
   Serial.println(FreeRam());
 
   // Init state transitions
@@ -64,18 +55,18 @@ void setup() {
 
   // Initialize SD card for storage
   Serial.print("Initializing SD Card...");
-  pinMode(chipSelect, OUTPUT);
-  if (!SD.begin(chipSelect)) {
+  pinMode(10, OUTPUT);
+  if (!SD.begin(10)) {
     error("card failed, or not present");
   }
   Serial.println("done!");
   Serial.println(FreeRam());
 
   // Initialize the root directory
-  Serial.print("Initializing Root Dir...");
-  config = SD.open("config.txt");
-  if (!config)
-    error("problem loading config file");
+  Serial.print("Initializing Config File...");
+  file = SD.open("config.txt");
+  if (!file)
+    error("problem loading file");
   Serial.println("done!");
   Serial.println(FreeRam());
 
@@ -83,10 +74,8 @@ void setup() {
   Serial.print("Initializing LED Matrix...");
   ledMatrix.init();
   ledMatrix.applyToCRGBArray(leds);
-  /*
   FastLED.addLeds<WS2812, LED_PIN, GRB>(leds, LED_NUM);
   FastLED.show();
-  */
   Serial.println("done!");
   Serial.println(FreeRam());
 }
@@ -111,9 +100,7 @@ void onEnterLoad() {
   Serial.print(now.month(), DEC);
   Serial.print('/');
   Serial.print(now.day(), DEC);
-  Serial.print(" (");
-  Serial.print(daysOfTheWeek[now.dayOfTheWeek()]);
-  Serial.print(") ");
+  Serial.print(" | ");
   Serial.print(now.hour(), DEC);
   Serial.print(':');
   Serial.print(now.minute(), DEC);

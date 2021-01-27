@@ -26,31 +26,31 @@
 #define LED_ARRAY_Y 7
 
 struct CRGBStateMap {
-    CRGB inactive;
-    CRGB active;
-    CRGB dimmed;
-    CRGB pressed;
+  CRGB inactive;
+  CRGB active;
+  CRGB dimmed;
+  CRGB pressed;
 };
 
-class LedMatrix
-{
-    public : LedMatrix();
-        void init();
-        bool tick();
-        void setInputsColor(int r, int g, int b);
-        void setFunctionColor(int index, int r, int g, int b);
-        void setState(int x, int y, char state);
-        void applyToCRGBArray(CRGB matrix[LED_NUM]);
+class LedMatrix {
+public:
+  LedMatrix();
+  void init();
+  bool tick();
+  void setInputsColor(int r, int g, int b);
+  void setFunctionColor(int index, int r, int g, int b);
+  void setState(int x, int y, char state);
+  void applyToCRGBArray(CRGB matrix[LED_NUM]);
 
-    private:
-        char led_state[LED_NUM];
-        CRGBStateMap colorInput;
-        CRGBStateMap colorFunc0;
-        CRGBStateMap colorFunc1;
-        CRGBStateMap colorFunc2;
-        CRGBStateMap colorFunc3;
-        void generateStateMap(CRGBStateMap *stateMap, int r, int g, int b);
-        CRGB getColorForState(int i, CRGBStateMap stateMap);
+private:
+  char led_state[LED_NUM];
+  CRGBStateMap colorInput;
+  CRGBStateMap colorFunc0;
+  CRGBStateMap colorFunc1;
+  CRGBStateMap colorFunc2;
+  CRGBStateMap colorFunc3;
+  void generateStateMap(CRGBStateMap *stateMap, int r, int g, int b);
+  CRGB getColorForState(int i, CRGBStateMap stateMap);
 };
 
 #endif
