@@ -11,18 +11,23 @@
 #define TRACK_HABIT 901
 
 // Finite state machine
+State state_init(&onEnterInit, NULL, NULL);
 State state_load(&onEnterLoad, &onStateLoad, &onExitLoad);
 State state_track(&onEnterTrack, &onStateTrack, &onExitTrack);
-Fsm fsm(&state_load);
+Fsm fsm(&state_init);
 
 // Data logger shield setup
 RTC_PCF8523 rtc;
 DateTime now;
-File file;
+File root;
 
 // LED strip
 CRGB leds[LED_NUM];
 LedMatrix ledMatrix;
+
+// Application Globals
+int HABIT_COUNT = 0;
+String habit_prefix = "HB_";
 
 void error(char *str) {
   Serial.print("ERROR: ");
@@ -58,10 +63,10 @@ void setup() {
   Serial.println("done!");
 
   // Initialize the root directory
-  Serial.print("Initializing Config File...");
-  file = SD.open("config.txt");
-  if (!file)
-    error("problem loading file");
+  Serial.print("Initializing Root...");
+  root = SD.open("/");
+  if (!root)
+    error("problem loading root");
   Serial.println("done!");
 
   // Initializing LED matrix for display
@@ -78,14 +83,19 @@ void loop() { fsm.run_machine(); }
 /////////// FINITE STATE MACHINE //////////////////
 
 void setupStateMachine() {
+  fsm.add_transition(&state_init, &state_load, LOAD_HABIT, NULL);
   fsm.add_transition(&state_load, &state_track, TRACK_HABIT, NULL);
   fsm.add_transition(&state_track, &state_load, LOAD_HABIT, NULL);
 }
 
-// --  LOAD  --
+// --  INIT  --
 
-void onEnterLoad() {
+void onEnterInit() {
+
   now = rtc.now();
+
+  Serial.println();
+  Serial.print("Habit Tracker v0.0.0, ");
   Serial.print(now.year(), DEC);
   Serial.print('/');
   Serial.print(now.month(), DEC);
@@ -95,10 +105,34 @@ void onEnterLoad() {
   Serial.print(now.hour(), DEC);
   Serial.print(':');
   Serial.print(now.minute(), DEC);
-  Serial.print(':');
-  Serial.print(now.second(), DEC);
   Serial.println();
+
+  while (true) {
+    File entry = root.openNextFile();
+    if (!entry) {
+      break;
+    }
+
+    if (entry.isDirectory()) {
+      String name = entry.name();
+      if (!name.indexOf(habit_prefix)) {
+        HABIT_COUNT += 1;
+        Serial.println(name);
+      }
+    }
+  }
+
+  if (HABIT_COUNT == 0) {
+    Serial.println("NO HABIT FOUND, Creating Default...");
+    // !!! create a habit folder, config file and current month
+  }
+
+  fsm.trigger(LOAD_HABIT);
 }
+
+// --  LOAD  --
+
+void onEnterLoad() {}
 void onStateLoad() { fsm.trigger(TRACK_HABIT); }
 void onExitLoad() {}
 
