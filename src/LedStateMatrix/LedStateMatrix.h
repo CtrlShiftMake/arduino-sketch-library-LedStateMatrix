@@ -1,5 +1,4 @@
-#ifndef LedMatrix_h
-#define LedMatrix_h
+#ifndef LedStateMatrix_h #define LedStateMatrix_h
 
 #include "Arduino.h"
 #include "FastLED.h"
@@ -32,9 +31,9 @@ struct CRGBStateMap {
   CRGB pressed;
 };
 
-class LedMatrix {
+class LedStateMatrix {
 public:
-  LedMatrix();
+  LedStateMatrix();
   void init();
   bool tick();
   void setInputsColor(int r, int g, int b);

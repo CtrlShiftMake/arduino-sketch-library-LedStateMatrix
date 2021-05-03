@@ -1,9 +1,9 @@
-#include "LedMatrix.h"
+#include "LedStateMatrix.h"
 #include "Arduino.h"
 
-LedMatrix::LedMatrix() {}
+LedStateMatrix::LedStateMatrix() {}
 
-void LedMatrix::init() {
+void LedStateMatrix::init() {
 
   for (int x = 0; x < LED_ARRAY_X; x++) {
     for (int y = 0; y < LED_ARRAY_Y; y++) {
@@ -18,11 +18,11 @@ void LedMatrix::init() {
   setFunctionColor(FUNC_3, 255, 0, 0);
 }
 
-void LedMatrix::setInputsColor(int r, int g, int b) {
+void LedStateMatrix::setInputsColor(int r, int g, int b) {
   generateStateMap(&colorInput, r, g, b);
 }
 
-void LedMatrix::setFunctionColor(int index, int r, int g, int b) {
+void LedStateMatrix::setFunctionColor(int index, int r, int g, int b) {
   switch (index) {
   case FUNC_0:
     generateStateMap(&colorFunc0, r, g, b);
@@ -45,7 +45,8 @@ void LedMatrix::setFunctionColor(int index, int r, int g, int b) {
   }
 }
 
-void LedMatrix::generateStateMap(CRGBStateMap *stateMap, int r, int g, int b) {
+void LedStateMatrix::generateStateMap(CRGBStateMap *stateMap, int r, int g,
+                                      int b) {
   stateMap->inactive =
       CRGB(r * VAL_INACTIVE, g * VAL_INACTIVE, b * VAL_INACTIVE);
   stateMap->active = CRGB(r * VAL_ACTIVE, g * VAL_ACTIVE, b * VAL_ACTIVE);
@@ -53,14 +54,14 @@ void LedMatrix::generateStateMap(CRGBStateMap *stateMap, int r, int g, int b) {
   stateMap->pressed = CRGB(r * VAL_PRESSED, g * VAL_PRESSED, b * VAL_PRESSED);
 }
 
-void LedMatrix::setState(int x, int y, char state) {
+void LedStateMatrix::setState(int x, int y, char state) {
   int index = x + (x * (LED_ARRAY_Y - 1)) + y;
   if (index >= 0 && index < LED_NUM) {
     led_state[index] = state;
   }
 }
 
-void LedMatrix::applyToCRGBArray(CRGB matrix[LED_NUM]) {
+void LedStateMatrix::applyToCRGBArray(CRGB matrix[LED_NUM]) {
   for (int i = 0; i < LED_NUM; i++) {
     switch (i) {
     case FUNC_0:
@@ -86,8 +87,7 @@ void LedMatrix::applyToCRGBArray(CRGB matrix[LED_NUM]) {
   }
 }
 
-CRGB LedMatrix::getColorForState(int i, CRGBStateMap stateMap) {
-
+CRGB LedStateMatrix::getColorForState(int i, CRGBStateMap stateMap) {
   switch (led_state[i]) {
   case LED_INACTIVE:
     return stateMap.inactive;
