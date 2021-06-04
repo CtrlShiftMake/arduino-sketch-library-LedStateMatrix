@@ -1,4 +1,4 @@
-# arduino-sketch-library-LedStateMatrix
+# LedStateMatrix
 
 Arduino C++ code for creating a matrix of LEDs with states that change the display brightness.
 
